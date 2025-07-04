@@ -35,15 +35,16 @@ services:
   n8n:
     image: n8nio/n8n:latest
     environment:
-      - N8N_BASIC_AUTH_ACTIVE=true
-      - N8N_BASIC_AUTH_USER=admin
-      - N8N_BASIC_AUTH_PASSWORD=ai-tools-community-2024
+      # No authentication - open for community
+      - N8N_BASIC_AUTH_ACTIVE=false
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
       - N8N_PROTOCOL=http
       - NODE_ENV=production
       - DB_TYPE=sqlite
       - N8N_USER_FOLDER=/home/node/.n8n
+      # Allow all origins for community access
+      - N8N_CORS_ORIGIN=*
     volumes:
       - n8n_data:/home/node/.n8n
       - n8n_workflows:/home/node/workflows
@@ -61,8 +62,6 @@ services:
 
   redis:
     image: redis:7-alpine
-    environment:
-      - REDIS_PASSWORD=
     volumes:
       - redis_data:/data
     restart: unless-stopped
