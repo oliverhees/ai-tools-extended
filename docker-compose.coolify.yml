@@ -6,10 +6,6 @@ services:
       context: .
       dockerfile: Dockerfile
     image: ai-tools-extended:latest
-    container_name: ai-tools-extended
-    ports:
-      - "8000:8000"  # Original AI Tools API
-      - "8080:8080"  # YouTube Extension API
     environment:
       # Original tool settings
       - WHISPER_MODEL=${WHISPER_MODEL:-base}
@@ -20,7 +16,6 @@ services:
       - ENABLE_CACHE=${ENABLE_CACHE:-true}
       # Coolify specific
       - NODE_ENV=production
-      - PORT=8000
     volumes:
       - ai_tools_media:/app/media
       - ai_tools_cache:/app/cache
@@ -39,16 +34,13 @@ services:
 
   n8n:
     image: n8nio/n8n:latest
-    container_name: n8n
-    ports:
-      - "5678:5678"
     environment:
-      - N8N_BASIC_AUTH_ACTIVE=${N8N_AUTH_ACTIVE:-true}
-      - N8N_BASIC_AUTH_USER=${N8N_USER:-admin}
-      - N8N_BASIC_AUTH_PASSWORD=${N8N_PASSWORD:-changeme}
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=ai-tools-community-2024
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
-      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - N8N_PROTOCOL=http
       - NODE_ENV=production
       - DB_TYPE=sqlite
       - N8N_USER_FOLDER=/home/node/.n8n
@@ -69,15 +61,12 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
     environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - REDIS_PASSWORD=
     volumes:
       - redis_data:/data
     restart: unless-stopped
-    command: redis-server --appendonly yes ${REDIS_PASSWORD:+--requirepass $REDIS_PASSWORD}
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 30s
