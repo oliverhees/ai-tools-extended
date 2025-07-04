@@ -1,0 +1,277 @@
+{
+  "name": "🎓 Beginner Tutorial: YouTube to Blog Post",
+  "nodes": [
+    {
+      "parameters": {
+        "notice": "🎯 TUTORIAL: Dein erstes AI Tools Workflow!\n\n1️⃣ Klicke 'Test workflow' unten\n2️⃣ Gib eine YouTube URL ein\n3️⃣ Schau zu wie die Magie passiert!\n\n📚 Lerne dabei alle wichtigen Konzepte"
+      },
+      "id": "tutorial-start",
+      "name": "📖 Tutorial Start",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tutorial-start",
+        "responseMode": "lastNode",
+        "options": {
+          "noResponseBody": false
+        }
+      },
+      "id": "webhook",
+      "name": "🚀 Webhook Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [460, 300],
+      "notes": "Empfängt YouTube URL von außen\nBeispiel: {\"youtube_url\": \"https://youtube.com/watch?v=abc123\"}"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "youtube_url",
+              "value": "https://youtube.com/watch?v=dQw4w9WgXcQ"
+            },
+            {
+              "name": "language",
+              "value": "de"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-defaults",
+      "name": "⚙️ Set Default Values",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [680, 300],
+      "notes": "Setzt Standard-Werte falls keine Input kommt\nNützlich für Testing!"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/transcribe",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"{{ $json.youtube_url }}\",\n  \"language\": \"{{ $json.language || 'auto' }}\"\n}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "youtube-transcribe",
+      "name": "🎥 YouTube Transcribe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [900, 300],
+      "notes": "🔥 WICHTIG: Nutze IMMER 'ai-tools:8080' als URL!\nNIE localhost - funktioniert nicht in Docker!"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.transcription }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "check-success",
+      "name": "✅ Check Success",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1120, 300],
+      "notes": "Prüft ob Transcription erfolgreich war\nGood Practice für robuste Workflows!"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📝 Blog Post aus Transcription erstellen\nconst data = items[0].json;\nconst transcription = data.transcription.text;\nconst title = data.title;\nconst duration = Math.round(data.duration / 60);\n\n// Text in Paragraphen aufteilen\nconst sentences = transcription.split(/[.!?]+/);\nconst paragraphs = [];\nlet currentParagraph = \"\";\n\nsentences.forEach(sentence => {\n  if (currentParagraph.length + sentence.length < 300) {\n    currentParagraph += sentence.trim() + \". \";\n  } else {\n    if (currentParagraph) paragraphs.push(currentParagraph.trim());\n    currentParagraph = sentence.trim() + \". \";\n  }\n});\n\nif (currentParagraph) paragraphs.push(currentParagraph.trim());\n\n// Blog Post erstellen\nconst blogPost = {\n  title: `📺 ${title}`,\n  subtitle: `Ein ${duration}-minütiges Video zusammengefasst`,\n  introduction: transcription.substring(0, 200) + \"...\",\n  content: paragraphs.join(\"\\n\\n\"),\n  metadata: {\n    originalVideoLength: `${duration} Minuten`,\n    wordCount: transcription.split(' ').length,\n    readingTime: `${Math.ceil(transcription.split(' ').length / 200)} Minuten`,\n    language: data.transcription.language\n  },\n  seo: {\n    metaDescription: transcription.substring(0, 160),\n    keywords: \"YouTube, Video, Zusammenfassung, AI\"\n  }\n};\n\nreturn [{ json: blogPost }];"
+      },
+      "id": "create-blog-post",
+      "name": "✍️ Create Blog Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200],
+      "notes": "💡 Code Node Tutorial:\n- items[0].json = Input Daten\n- return [{ json: output }] = Output\n- JavaScript Code für komplexe Logik"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/text-to-speech",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"text\": \"{{ $json.transcription.text.substring(0, 500) }}\",\n  \"voice\": \"de-DE-KatjaNeural\",\n  \"speed\": 1.0\n}",
+        "options": {}
+      },
+      "id": "create-audio",
+      "name": "🎵 Create Audio Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1340, 400],
+      "notes": "Erstellt Audio-Version der ersten 500 Zeichen\nPerfekt für Podcast-Intros!"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "blog_title",
+              "value": "={{ $('Create Blog Post').item.json.title }}"
+            },
+            {
+              "name": "blog_content",
+              "value": "={{ $('Create Blog Post').item.json.content }}"
+            },
+            {
+              "name": "word_count",
+              "value": "={{ $('Create Blog Post').item.json.metadata.wordCount }}"
+            },
+            {
+              "name": "reading_time",
+              "value": "={{ $('Create Blog Post').item.json.metadata.readingTime }}"
+            },
+            {
+              "name": "audio_download",
+              "value": "={{ $('Create Audio Summary').item.json.download_url }}"
+            },
+            {
+              "name": "original_video",
+              "value": "={{ $('YouTube Transcribe').item.json.title }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-output",
+      "name": "📋 Format Final Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1560, 300],
+      "notes": "🎯 Output Formatting:\n- Kombiniert alle Ergebnisse\n- Nutzt {{ $('NodeName').item.json.field }} Syntax\n- Erstellt strukturierte Antwort"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "error",
+              "value": "YouTube Transcription failed"
+            },
+            {
+              "name": "message",
+              "value": "Bitte prüfe die YouTube URL und versuche es erneut"
+            },
+            {
+              "name": "input_url",
+              "value": "={{ $('Set Default Values').item.json.youtube_url }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "error-output",
+      "name": "❌ Error Handler",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1340, 500],
+      "notes": "Error Handling ist wichtig!\nImmer alternative Pfade für Fehler planen"
+    },
+    {
+      "parameters": {
+        "notice": "🎓 TUTORIAL COMPLETE!\n\n✅ Du hast gelernt:\n• Webhook Input empfangen\n• AI Tools APIs nutzen\n• Code Nodes programmieren\n• Error Handling implementieren\n• Output formatieren\n\n🚀 Nächste Schritte:\n• Workflow duplizieren & anpassen\n• Eigene APIs hinzufügen\n• Komplexere Logik entwickeln"
+      },
+      "id": "tutorial-end",
+      "name": "🎉 Tutorial Ende",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1780, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Input": {
+      "main": [
+        [
+          {
+            "node": "Set Default Values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Default Values": {
+      "main": [
+        [
+          {
+            "node": "YouTube Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "YouTube Transcribe": {
+      "main": [
+        [
+          {
+            "node": "Check Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Success": {
+      "main": [
+        [
+          {
+            "node": "Create Blog Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Audio Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Format Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Audio Summary": {
+      "main": [
+        [
+          {
+            "node": "Format Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

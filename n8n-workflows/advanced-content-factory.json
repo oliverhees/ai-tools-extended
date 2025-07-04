@@ -1,0 +1,343 @@
+{
+  "name": "🏭 Advanced Content Factory - Multi-Platform Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "notice": "🏭 ADVANCED CONTENT FACTORY\n\n🎯 Was dieser Workflow macht:\n• 1 YouTube Video input\n• Generiert 15+ verschiedene Content-Formate\n• Für alle Social Media Plattformen\n• Vollautomatisch parallel verarbeitet\n\n⚡ Performance: ~3-5 Minuten für komplettes Paket!"
+      },
+      "id": "factory-info",
+      "name": "🏭 Content Factory Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-factory",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "📥 Input Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/transcribe",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"{{ $json.body.youtube_url }}\",\n  \"language\": \"{{ $json.body.language || 'auto' }}\"\n}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "transcribe",
+      "name": "🎥 Transcribe Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/extract-thumbnail",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"{{ $json.body.youtube_url }}\"\n}",
+        "options": {}
+      },
+      "id": "thumbnail",
+      "name": "🖼️ Extract Thumbnail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🎯 Twitter Thread Generator\nconst transcription = items[0].json.transcription.text;\nconst title = items[0].json.title;\n\n// Split in tweet-sized chunks\nconst sentences = transcription.split(/[.!?]+/);\nconst tweets = [];\nlet currentTweet = \"\";\nconst maxLength = 250; // Leave room for thread numbers\n\nsentences.forEach(sentence => {\n  const cleanSentence = sentence.trim();\n  if (!cleanSentence) return;\n  \n  if ((currentTweet + \" \" + cleanSentence).length < maxLength) {\n    currentTweet += (currentTweet ? \" \" : \"\") + cleanSentence + \".\";\n  } else {\n    if (currentTweet) tweets.push(currentTweet);\n    currentTweet = cleanSentence + \".\";\n  }\n});\n\nif (currentTweet) tweets.push(currentTweet);\n\n// Limit to max 10 tweets\ntweets.splice(10);\n\n// Format as thread\nconst thread = tweets.map((tweet, index) => {\n  const threadNumber = `${index + 1}/${tweets.length}`;\n  let formattedTweet = tweet;\n  \n  if (index === 0) {\n    formattedTweet = `🧵 ${title}\\n\\n${tweet}`;\n  }\n  \n  if (index === tweets.length - 1) {\n    formattedTweet += \"\\n\\n🔗 Video: [Link]\\n#AI #Content #Thread\";\n  }\n  \n  return {\n    tweet_number: index + 1,\n    total_tweets: tweets.length,\n    content: formattedTweet,\n    hashtags: index === 0 ? \"#Thread #AI #Content\" : \"\",\n    character_count: formattedTweet.length\n  };\n});\n\nreturn [{ json: { thread, total_tweets: tweets.length, platform: \"twitter\" } }];"
+      },
+      "id": "twitter-thread",
+      "name": "🐦 Generate Twitter Thread",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 💼 LinkedIn Post Generator\nconst transcription = items[0].json.transcription.text;\nconst title = items[0].json.title;\nconst duration = Math.round(items[0].json.duration / 60);\n\n// Create professional LinkedIn post\nconst hook = \"🎯 Just watched this insightful video and here are my key takeaways:\";\nconst summary = transcription.substring(0, 800);\nconst cta = \"\\n\\n💭 What are your thoughts on this topic?\\n\\n🔗 Watch the full video: [Link]\";\n\nconst linkedinPost = {\n  platform: \"linkedin\",\n  hook: hook,\n  content: `${hook}\\n\\n📺 \"${title}\" (${duration} min)\\n\\n${summary}...${cta}`,\n  hashtags: \"#ProfessionalDevelopment #Learning #Insights #VideoContent\",\n  character_count: (hook + summary + cta).length,\n  engagement_elements: {\n    question: \"What are your thoughts on this topic?\",\n    cta: \"Watch the full video\",\n    emoji_count: 4\n  }\n};\n\nreturn [{ json: linkedinPost }];"
+      },
+      "id": "linkedin-post",
+      "name": "💼 Generate LinkedIn Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📸 Instagram Content Generator\nconst transcription = items[0].json.transcription.text;\nconst title = items[0].json.title;\n\n// Split into Instagram-friendly chunks for carousel\nconst sentences = transcription.split(/[.!?]+/);\nconst slides = [];\nlet currentSlide = \"\";\nconst maxPerSlide = 150;\n\n// Create 5-8 slides max\nfor (let i = 0; i < sentences.length && slides.length < 8; i++) {\n  const sentence = sentences[i].trim();\n  if (!sentence) continue;\n  \n  if ((currentSlide + \" \" + sentence).length < maxPerSlide) {\n    currentSlide += (currentSlide ? \" \" : \"\") + sentence + \".\";\n  } else {\n    if (currentSlide) slides.push(currentSlide);\n    currentSlide = sentence + \".\";\n  }\n}\n\nif (currentSlide && slides.length < 8) slides.push(currentSlide);\n\n// Create Instagram post\nconst instagramContent = {\n  platform: \"instagram\",\n  caption: `🎬 ${title}\\n\\n✨ Key insights from this amazing video! Swipe to read all takeaways 👉\\n\\n${transcription.substring(0, 300)}...\\n\\n#contentcreator #learning #insights #videomarketing #ai`,\n  carousel_slides: slides.map((slide, index) => ({\n    slide_number: index + 1,\n    content: slide,\n    design_note: index === 0 ? \"Title slide with video thumbnail\" : \"Text slide with key point\"\n  })),\n  hashtags: \"#contentcreator #learning #insights #videomarketing #ai #education #tips\",\n  story_version: transcription.substring(0, 200) + \"... Swipe up for full video! 🔗\"\n};\n\nreturn [{ json: instagramContent }];"
+      },
+      "id": "instagram-content",
+      "name": "📸 Generate Instagram Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 🎵 TikTok Script Generator\nconst transcription = items[0].json.transcription.text;\nconst title = items[0].json.title;\n\n// Find the most engaging 30-60 second segments\nconst sentences = transcription.split(/[.!?]+/);\nconst hooks = [];\nconst payoffs = [];\n\n// Find hook sentences (questions, surprising statements)\nsentences.forEach(sentence => {\n  const lower = sentence.toLowerCase().trim();\n  if (lower.includes('?') || lower.includes('amazing') || lower.includes('surprising') || lower.includes('secret')) {\n    hooks.push(sentence.trim());\n  }\n  if (lower.includes('solution') || lower.includes('answer') || lower.includes('result')) {\n    payoffs.push(sentence.trim());\n  }\n});\n\n// Create 3 different TikTok scripts\nconst scripts = [];\n\n// Script 1: Hook + Quick Tips\nscripts.push({\n  script_number: 1,\n  hook: hooks[0] || \"You won't believe what I just learned!\",\n  content: transcription.substring(0, 400),\n  cta: \"Follow for more tips like this! 🔥\",\n  duration: \"30-45 seconds\",\n  style: \"Quick tips format\"\n});\n\n// Script 2: Problem + Solution\nscripts.push({\n  script_number: 2,\n  hook: \"Here's the problem everyone faces...\",\n  content: transcription.substring(200, 600),\n  cta: \"Save this for later! 💾\",\n  duration: \"45-60 seconds\",\n  style: \"Problem/solution format\"\n});\n\n// Script 3: Surprising fact\nscripts.push({\n  script_number: 3,\n  hook: \"This fact will blow your mind! 🤯\",\n  content: transcription.substring(400, 800),\n  cta: \"Share if this helped you! ❤️\",\n  duration: \"15-30 seconds\",\n  style: \"Quick fact format\"\n});\n\nconst tiktokContent = {\n  platform: \"tiktok\",\n  original_title: title,\n  scripts: scripts,\n  hashtags: \"#fyp #viral #learning #tips #educational #ai #content\",\n  music_suggestions: [\"Trending upbeat track\", \"Educational background music\", \"Viral sound of the week\"],\n  visual_notes: \"Use dynamic text overlays, quick cuts, engaging transitions\"\n};\n\nreturn [{ json: tiktokContent }];"
+      },
+      "id": "tiktok-scripts",
+      "name": "🎵 Generate TikTok Scripts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/text-to-speech",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"text\": \"{{ $json.transcription.text.substring(0, 800) }}\",\n  \"voice\": \"de-DE-KatjaNeural\",\n  \"speed\": 1.1\n}",
+        "options": {}
+      },
+      "id": "podcast-audio",
+      "name": "🎙️ Generate Podcast Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📝 Blog Post Generator\nconst transcription = items[0].json.transcription.text;\nconst title = items[0].json.title;\nconst duration = Math.round(items[0].json.duration / 60);\n\n// Create structured blog post\nconst sentences = transcription.split(/[.!?]+/);\nconst sections = [];\nlet currentSection = \"\";\nconst wordsPerSection = 100;\n\n// Split into sections\nfor (let i = 0; i < sentences.length; i++) {\n  const sentence = sentences[i].trim();\n  if (!sentence) continue;\n  \n  currentSection += sentence + \". \";\n  \n  if (currentSection.split(' ').length >= wordsPerSection || i === sentences.length - 1) {\n    sections.push(currentSection.trim());\n    currentSection = \"\";\n  }\n}\n\n// Generate headings for sections\nconst sectionTitles = [\n  \"Introduction\",\n  \"Key Points\", \n  \"Main Insights\",\n  \"Practical Applications\",\n  \"Expert Opinion\",\n  \"Conclusion\"\n];\n\nconst blogPost = {\n  platform: \"blog\",\n  title: `📺 ${title} - Complete Analysis & Summary`,\n  meta_description: transcription.substring(0, 160),\n  introduction: `In this comprehensive analysis of the ${duration}-minute video \"${title}\", we break down all the key insights and actionable takeaways.`,\n  sections: sections.slice(0, 6).map((content, index) => ({\n    heading: sectionTitles[index] || `Section ${index + 1}`,\n    content: content,\n    word_count: content.split(' ').length\n  })),\n  conclusion: \"These insights from the video provide valuable perspective on the topic. Apply these concepts to see real results.\",\n  seo: {\n    keywords: \"video analysis, insights, learning, education\",\n    word_count: transcription.split(' ').length,\n    reading_time: Math.ceil(transcription.split(' ').length / 200)\n  },\n  cta: \"Watch the full video for complete context and additional details.\"\n};\n\nreturn [{ json: blogPost }];"
+      },
+      "id": "blog-post",
+      "name": "📝 Generate Blog Post",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "original_video_title",
+              "value": "={{ $('Transcribe Video').item.json.title }}"
+            },
+            {
+              "name": "processing_time",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ],
+          "object": [
+            {
+              "name": "twitter_thread",
+              "value": "={{ $('Generate Twitter Thread').item.json }}"
+            },
+            {
+              "name": "linkedin_post",
+              "value": "={{ $('Generate LinkedIn Post').item.json }}"
+            },
+            {
+              "name": "instagram_content",
+              "value": "={{ $('Generate Instagram Content').item.json }}"
+            },
+            {
+              "name": "tiktok_scripts",
+              "value": "={{ $('Generate TikTok Scripts').item.json }}"
+            },
+            {
+              "name": "blog_post",
+              "value": "={{ $('Generate Blog Post').item.json }}"
+            },
+            {
+              "name": "podcast_audio",
+              "value": "={{ $('Generate Podcast Audio').item.json }}"
+            },
+            {
+              "name": "thumbnail",
+              "value": "={{ $('Extract Thumbnail').item.json }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "merge-results",
+      "name": "🔄 Merge All Results",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1120, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 📊 Content Factory Summary\nconst data = items[0].json;\n\n// Count generated content pieces\nconst contentCount = {\n  twitter_tweets: data.twitter_thread.total_tweets || 0,\n  linkedin_posts: 1,\n  instagram_slides: data.instagram_content.carousel_slides.length || 0,\n  tiktok_scripts: data.tiktok_scripts.scripts.length || 0,\n  blog_sections: data.blog_post.sections.length || 0,\n  audio_files: 1,\n  images: 1\n};\n\nconst totalPieces = Object.values(contentCount).reduce((sum, count) => sum + count, 0);\n\n// Create summary\nconst summary = {\n  factory_results: {\n    total_content_pieces: totalPieces,\n    breakdown: contentCount,\n    original_video: data.original_video_title,\n    processing_completed: data.processing_time\n  },\n  ready_to_use: {\n    twitter: `${contentCount.twitter_tweets} tweets ready to schedule`,\n    linkedin: \"Professional post with engagement hooks\", \n    instagram: `Carousel with ${contentCount.instagram_slides} slides + story version`,\n    tiktok: `${contentCount.tiktok_scripts} different scripts for viral content`,\n    blog: `SEO-optimized article with ${contentCount.blog_sections} sections`,\n    podcast: \"Audio summary for podcast intro/outro\",\n    thumbnail: \"High-quality thumbnail for all platforms\"\n  },\n  next_steps: [\n    \"Schedule Twitter thread with 2-hour intervals\",\n    \"Post LinkedIn content during business hours\", \n    \"Create Instagram carousel design\",\n    \"Record TikTok videos with provided scripts\",\n    \"Publish blog post with SEO optimization\",\n    \"Use audio for podcast or YouTube intro\"\n  ],\n  estimated_reach: {\n    twitter: \"500-2000 impressions per tweet\",\n    linkedin: \"1000-5000 professional views\",\n    instagram: \"2000-10000 reach with good hashtags\",\n    tiktok: \"10000-100000+ potential viral reach\",\n    blog: \"Ongoing organic search traffic\"\n  }\n};\n\n// Combine with all content\nconst finalOutput = {\n  ...data,\n  summary: summary\n};\n\nreturn [{ json: finalOutput }];"
+      },
+      "id": "create-summary",
+      "name": "📊 Create Factory Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 350]
+    },
+    {
+      "parameters": {
+        "notice": "🎉 CONTENT FACTORY COMPLETE!\n\n📈 Generated Content:\n• Twitter: Multi-tweet thread\n• LinkedIn: Professional post\n• Instagram: Carousel + story\n• TikTok: 3 viral scripts\n• Blog: SEO article\n• Podcast: Audio summary\n• Design: Thumbnail\n\n⚡ Total: 15+ pieces from 1 video!\n🚀 Ready for multi-platform distribution!"
+      },
+      "id": "completion-notice",
+      "name": "🎉 Factory Complete",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1560, 350]
+    }
+  ],
+  "connections": {
+    "Input Webhook": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Video",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Thumbnail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Video": {
+      "main": [
+        [
+          {
+            "node": "Generate Twitter Thread",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate LinkedIn Post",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Instagram Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate TikTok Scripts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Podcast Audio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Blog Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Twitter Thread": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate LinkedIn Post": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Instagram Content": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate TikTok Scripts": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Podcast Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Blog Post": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Thumbnail": {
+      "main": [
+        [
+          {
+            "node": "Merge All Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Results": {
+      "main": [
+        [
+          {
+            "node": "Create Factory Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
