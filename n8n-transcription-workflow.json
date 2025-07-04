@@ -1,0 +1,107 @@
+{
+  "name": "YouTube Transcription Community Service",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "youtube-transcribe",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/transcribe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json[\"body\"][\"youtube_url\"] }}"
+            },
+            {
+              "name": "language",
+              "value": "={{ $json[\"body\"][\"language\"] || \"auto\" }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "transcribe",
+      "name": "Transcribe Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "video_title",
+              "value": "={{ $json[\"title\"] }}"
+            },
+            {
+              "name": "duration_minutes",
+              "value": "={{ Math.round($json[\"duration\"] / 60) }}"
+            },
+            {
+              "name": "detected_language",
+              "value": "={{ $json[\"language\"] }}"
+            },
+            {
+              "name": "transcription",
+              "value": "={{ $json[\"transcription\"] }}"
+            },
+            {
+              "name": "word_count",
+              "value": "={{ $json[\"transcription\"].split(' ').length }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Video": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

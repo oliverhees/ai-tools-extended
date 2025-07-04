@@ -1,0 +1,223 @@
+{
+  "name": "Content Repurposing Suite",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "repurpose-content",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/transcribe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.body.youtube_url }}"
+            }
+          ]
+        }
+      },
+      "id": "transcribe",
+      "name": "Transcribe Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create different content formats from transcription\nconst transcription = items[0].json.transcription.text;\nconst title = items[0].json.title;\nconst duration = items[0].json.duration;\n\n// Blog post summary\nconst blogPost = {\n  title: `📝 Blog: ${title}`,\n  content: transcription.substring(0, 1500) + '...',\n  type: 'blog'\n};\n\n// Twitter thread\nconst twitterThread = {\n  title: `🧵 Twitter Thread: ${title}`,\n  content: transcription.substring(0, 280),\n  type: 'twitter'\n};\n\n// LinkedIn post\nconst linkedinPost = {\n  title: `💼 LinkedIn: ${title}`,\n  content: transcription.substring(0, 1300) + '\\n\\n#AI #ContentCreation',\n  type: 'linkedin'\n};\n\n// Newsletter snippet\nconst newsletter = {\n  title: `📧 Newsletter: ${title}`,\n  content: `🎥 Video Summary (${Math.round(duration/60)} min)\\n\\n${transcription.substring(0, 800)}...`,\n  type: 'newsletter'\n};\n\nreturn [blogPost, twitterThread, linkedinPost, newsletter];"
+      },
+      "id": "create-content",
+      "name": "Create Content Formats",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/text-to-speech",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.content.substring(0, 800) }}"
+            },
+            {
+              "name": "voice",
+              "value": "en-US-AriaNeural"
+            }
+          ]
+        }
+      },
+      "id": "tts-audio",
+      "name": "Generate Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/extract-thumbnail",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $('Webhook').item.json.body.youtube_url }}"
+            }
+          ]
+        }
+      },
+      "id": "thumbnail",
+      "name": "Get Thumbnail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/generate-captioned-video",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_id",
+              "value": "={{ $('Get Thumbnail').item.json.thumbnail_id }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.content.substring(0, 200) }}"
+            },
+            {
+              "name": "style",
+              "value": "minimal"
+            }
+          ]
+        }
+      },
+      "id": "quote-video",
+      "name": "Create Quote Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 600]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "content_type",
+              "value": "{{ $json.type }}"
+            },
+            {
+              "name": "title",
+              "value": "{{ $json.title }}"
+            },
+            {
+              "name": "text_content",
+              "value": "{{ $json.content }}"
+            },
+            {
+              "name": "audio_url",
+              "value": "={{ $('Generate Audio').item.json.download_url }}"
+            },
+            {
+              "name": "video_url",
+              "value": "={{ $('Create Quote Video').item.json.download_url }}"
+            },
+            {
+              "name": "thumbnail_url",
+              "value": "={{ $('Get Thumbnail').item.json.download_url }}"
+            }
+          ]
+        }
+      },
+      "id": "format-final",
+      "name": "Format Final Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1050, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Video",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Thumbnail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Video": {
+      "main": [
+        [
+          {
+            "node": "Create Content Formats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Content Formats": {
+      "main": [
+        [
+          {
+            "node": "Generate Audio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Quote Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Audio": {
+      "main": [
+        [
+          {
+            "node": "Format Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Quote Video": {
+      "main": [
+        [
+          {
+            "node": "Format Final Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

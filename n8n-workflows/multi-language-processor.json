@@ -1,0 +1,250 @@
+{
+  "name": "Multi-Language YouTube Processor",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "multi-language",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/transcribe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.body.youtube_url }}"
+            }
+          ]
+        }
+      },
+      "id": "transcribe",
+      "name": "Transcribe Original",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "languages",
+              "value": "={{ $json.body.target_languages || 'de,fr,es,it' }}"
+            }
+          ]
+        }
+      },
+      "id": "config",
+      "name": "Set Languages",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Split languages and create items for each\nconst languages = items[0].json.languages.split(',');\nconst transcription = items[0].json.transcription || $('Transcribe Original').item.json.transcription;\n\nreturn languages.map(lang => ({\n  language: lang.trim(),\n  original_text: transcription.text,\n  title: $('Transcribe Original').item.json.title\n}));"
+      },
+      "id": "split-languages",
+      "name": "Split Languages",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/text-to-speech",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.original_text.substring(0, 1000) }}"
+            },
+            {
+              "name": "voice",
+              "value": "={{$json.language}}-{{$json.language.toUpperCase()}}-Standard-A"
+            },
+            {
+              "name": "speed",
+              "value": 1.0
+            }
+          ]
+        }
+      },
+      "id": "generate-tts",
+      "name": "Generate TTS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/extract-thumbnail",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $('Webhook').item.json.body.youtube_url }}"
+            }
+          ]
+        }
+      },
+      "id": "thumbnail",
+      "name": "Get Thumbnail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/generate-captioned-video",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_id",
+              "value": "={{ $('Get Thumbnail').item.json.thumbnail_id }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.original_text.substring(0, 300) }}"
+            },
+            {
+              "name": "style",
+              "value": "bold"
+            },
+            {
+              "name": "add_music",
+              "value": false
+            }
+          ]
+        }
+      },
+      "id": "create-video",
+      "name": "Create Captioned Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "language",
+              "value": "{{ $json.language }}"
+            },
+            {
+              "name": "title",
+              "value": "{{ $json.title }} ({{ $json.language.toUpperCase() }})"
+            },
+            {
+              "name": "audio_download",
+              "value": "{{ $('Generate TTS').item.json.download_url }}"
+            },
+            {
+              "name": "video_download",
+              "value": "{{ $('Create Captioned Video').item.json.download_url }}"
+            },
+            {
+              "name": "text_preview",
+              "value": "{{ $json.original_text.substring(0, 200) }}..."
+            }
+          ]
+        }
+      },
+      "id": "format-result",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Original",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Thumbnail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Original": {
+      "main": [
+        [
+          {
+            "node": "Set Languages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Languages": {
+      "main": [
+        [
+          {
+            "node": "Split Languages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Languages": {
+      "main": [
+        [
+          {
+            "node": "Generate TTS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate TTS": {
+      "main": [
+        [
+          {
+            "node": "Create Captioned Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Captioned Video": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

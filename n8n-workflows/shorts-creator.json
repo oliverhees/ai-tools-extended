@@ -1,0 +1,183 @@
+{
+  "name": "YouTube Shorts Creator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "create-shorts",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/transcribe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.body.youtube_url }}"
+            }
+          ]
+        }
+      },
+      "id": "transcribe",
+      "name": "Transcribe Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract key quotes from transcription\nconst text = items[0].json.transcription.text;\nconst sentences = text.split(/[.!?]+/);\n\n// Find impactful sentences (length 10-50 words)\nconst quotes = sentences\n  .filter(s => {\n    const words = s.trim().split(' ');\n    return words.length >= 10 && words.length <= 50;\n  })\n  .slice(0, 3)  // Take first 3 good quotes\n  .map((quote, index) => ({\n    quote: quote.trim(),\n    index: index + 1\n  }));\n\nreturn quotes;"
+      },
+      "id": "extract-quotes",
+      "name": "Extract Key Quotes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/extract-thumbnail",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $('Webhook').item.json.body.youtube_url }}"
+            }
+          ]
+        }
+      },
+      "id": "thumbnail",
+      "name": "Get Thumbnail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/generate-captioned-video",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_id",
+              "value": "={{ $('Get Thumbnail').item.json.thumbnail_id }}"
+            },
+            {
+              "name": "text",
+              "value": "={{ $json.quote }}"
+            },
+            {
+              "name": "style",
+              "value": "gradient"
+            },
+            {
+              "name": "add_music",
+              "value": true
+            }
+          ]
+        }
+      },
+      "id": "create-video",
+      "name": "Create Short Video",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "original_title",
+              "value": "={{ $('Transcribe Video').item.json.title }}"
+            },
+            {
+              "name": "short_title",
+              "value": "🎬 {{ $('Transcribe Video').item.json.title.substring(0, 50) }}..."
+            },
+            {
+              "name": "quote_text",
+              "value": "{{ $json.quote }}"
+            },
+            {
+              "name": "video_download",
+              "value": "{{ $('Create Short Video').item.json.download_url }}"
+            },
+            {
+              "name": "quote_number",
+              "value": "{{ $json.index }}"
+            }
+          ]
+        }
+      },
+      "id": "format-output",
+      "name": "Format Output",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Video",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Thumbnail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Video": {
+      "main": [
+        [
+          {
+            "node": "Extract Key Quotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Key Quotes": {
+      "main": [
+        [
+          {
+            "node": "Create Short Video",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Short Video": {
+      "main": [
+        [
+          {
+            "node": "Format Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

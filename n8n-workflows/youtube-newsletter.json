@@ -1,0 +1,173 @@
+{
+  "name": "YouTube Newsletter Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "youtube-newsletter",
+        "responseMode": "lastNode"
+      },
+      "id": "webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/transcribe",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.body.youtube_url }}"
+            },
+            {
+              "name": "language",
+              "value": "={{ $json.body.language || 'auto' }}"
+            }
+          ]
+        }
+      },
+      "id": "transcribe",
+      "name": "Transcribe YouTube",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8000/text-to-speech",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "={{ $json.transcription.text.substring(0, 1000) }}"
+            },
+            {
+              "name": "voice",
+              "value": "en-US-JennyNeural"
+            }
+          ]
+        }
+      },
+      "id": "tts",
+      "name": "Generate TTS Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://ai-tools:8080/youtube/extract-thumbnail",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.body.youtube_url }}"
+            }
+          ]
+        }
+      },
+      "id": "thumbnail",
+      "name": "Extract Thumbnail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "newsletter_title",
+              "value": "📹 {{ $('transcribe').item.json.title }}"
+            },
+            {
+              "name": "video_summary",
+              "value": "{{ $('transcribe').item.json.transcription.text.substring(0, 500) }}..."
+            },
+            {
+              "name": "audio_download",
+              "value": "{{ $('tts').item.json.download_url }}"
+            },
+            {
+              "name": "thumbnail_url",
+              "value": "{{ $('thumbnail').item.json.download_url }}"
+            },
+            {
+              "name": "duration_minutes",
+              "value": "{{ Math.round($('transcribe').item.json.duration / 60) }}"
+            },
+            {
+              "name": "word_count",
+              "value": "{{ $('transcribe').item.json.transcription.text.split(' ').length }}"
+            }
+          ]
+        }
+      },
+      "id": "newsletter",
+      "name": "Create Newsletter",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Transcribe YouTube",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe YouTube": {
+      "main": [
+        [
+          {
+            "node": "Generate TTS Audio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Extract Thumbnail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate TTS Audio": {
+      "main": [
+        [
+          {
+            "node": "Create Newsletter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Thumbnail": {
+      "main": [
+        [
+          {
+            "node": "Create Newsletter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

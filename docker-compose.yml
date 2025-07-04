@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  ai-tools:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-tools-extended:latest
+    container_name: ai-tools-extended
+    ports:
+      - "8000:8000"  # Original AI Tools API
+      - "8080:8080"  # YouTube Extension API
+    environment:
+      # Original tool settings
+      - WHISPER_MODEL=base
+      - TTS_ENGINE=kokoro
+      - MAX_FILE_SIZE=500MB
+      # Extension settings
+      - MAX_VIDEO_DURATION=600
+      - ENABLE_CACHE=true
+    volumes:
+      - ./media:/app/media
+      - ./cache:/app/cache
+      - ./temp:/tmp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health", "&&", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=changeme
+      - N8N_HOST=0.0.0.0
+      - WEBHOOK_URL=http://localhost:5678/
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/home/node/workflows
+    restart: unless-stopped
+    depends_on:
+      - ai-tools
+
+  # Optional: Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Optional: MinIO for S3-compatible storage
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+volumes:
+  n8n_data:
+  redis_data:
+  minio_data:

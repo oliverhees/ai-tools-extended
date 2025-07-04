@@ -1,0 +1,87 @@
+{
+  "name": "AI Tools Extended Community",
+  "description": "Complete AI-powered content creation suite with YouTube integration, TTS, transcription, and N8N workflows",
+  "services": [
+    {
+      "name": "ai-tools",
+      "type": "docker-compose",
+      "source": {
+        "type": "git",
+        "repository": "https://github.com/your-username/ai-tools-extended",
+        "branch": "main",
+        "dockerfile": "Dockerfile"
+      },
+      "compose_file": "docker-compose.coolify.yml",
+      "environment": {
+        "WHISPER_MODEL": "base",
+        "TTS_ENGINE": "kokoro", 
+        "MAX_FILE_SIZE": "500MB",
+        "MAX_VIDEO_DURATION": "600",
+        "ENABLE_CACHE": "true",
+        "N8N_USER": "admin",
+        "N8N_PASSWORD": "changeme_in_production"
+      },
+      "domains": [
+        {
+          "domain": "ai-tools.your-domain.com",
+          "port": 8000
+        },
+        {
+          "domain": "youtube-api.your-domain.com", 
+          "port": 8080
+        },
+        {
+          "domain": "workflows.your-domain.com",
+          "port": 5678
+        }
+      ],
+      "volumes": [
+        {
+          "source": "ai_tools_media",
+          "target": "/app/media",
+          "size": "100GB"
+        },
+        {
+          "source": "ai_tools_cache", 
+          "target": "/app/cache",
+          "size": "50GB"
+        },
+        {
+          "source": "n8n_data",
+          "target": "/home/node/.n8n", 
+          "size": "10GB"
+        }
+      ],
+      "health_check": {
+        "test": "curl -f http://localhost:8000/health",
+        "interval": "30s",
+        "timeout": "10s",
+        "retries": 3
+      },
+      "resource_limits": {
+        "memory": "4GB",
+        "cpu": "2"
+      }
+    }
+  ],
+  "networks": [
+    {
+      "name": "ai-tools-network",
+      "driver": "bridge"
+    }
+  ],
+  "backup": {
+    "enabled": true,
+    "schedule": "0 2 * * *",
+    "targets": ["ai_tools_media", "ai_tools_cache", "n8n_data"]
+  },
+  "monitoring": {
+    "enabled": true,
+    "metrics": ["cpu", "memory", "disk", "network"],
+    "alerts": {
+      "memory_threshold": "80%",
+      "disk_threshold": "85%",
+      "cpu_threshold": "90%"
+    }
+  }
+}
