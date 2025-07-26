@@ -7,14 +7,11 @@ services:
       dockerfile: Dockerfile
     image: ai-tools-extended:latest
     environment:
-      # Original tool settings
       - WHISPER_MODEL=${WHISPER_MODEL:-base}
       - TTS_ENGINE=${TTS_ENGINE:-kokoro}
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-500MB}
-      # Extension settings
       - MAX_VIDEO_DURATION=${MAX_VIDEO_DURATION:-600}
       - ENABLE_CACHE=${ENABLE_CACHE:-true}
-      # Coolify specific
       - NODE_ENV=production
     volumes:
       - ai_tools_media:/app/media
@@ -35,7 +32,6 @@ services:
   n8n:
     image: n8nio/n8n:latest
     environment:
-      # No authentication - open for community
       - N8N_BASIC_AUTH_ACTIVE=false
       - N8N_HOST=0.0.0.0
       - N8N_PORT=5678
@@ -43,7 +39,6 @@ services:
       - NODE_ENV=production
       - DB_TYPE=sqlite
       - N8N_USER_FOLDER=/home/node/.n8n
-      # Allow all origins for community access
       - N8N_CORS_ORIGIN=*
     volumes:
       - n8n_data:/home/node/.n8n
