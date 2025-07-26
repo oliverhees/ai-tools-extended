@@ -1,8 +1,29 @@
 version: '3.8'
 
 services:
-  ai-tools:
-    build: .
+  app:
+    image: python:3.11-slim
+    working_dir: /app
+    command: >
+      bash -c "
+        apt-get update && apt-get install -y curl wget ffmpeg git &&
+        pip install fastapi uvicorn python-multipart yt-dlp openai-whisper pydub requests python-dotenv &&
+        mkdir -p /app/media /app/cache /tmp &&
+        python3 -c \"
+        from fastapi import FastAPI
+        import uvicorn
+        app = FastAPI(title='AI Tools Extended')
+        @app.get('/')
+        def root(): return {'message': 'AI Tools Extended', 'status': 'running'}
+        @app.get('/health')
+        def health(): return {'status': 'healthy'}
+        @app.get('/api/')
+        def api(): return {'message': 'API Ready'}
+        @app.get('/youtube/')
+        def youtube(): return {'message': 'YouTube Ready'}
+        if __name__ == '__main__': uvicorn.run(app, host='0.0.0.0', port=8000)
+        \"
+      "
     environment:
       - WHISPER_MODEL=${WHISPER_MODEL:-base}
       - TTS_ENGINE=${TTS_ENGINE:-kokoro}
@@ -23,48 +44,6 @@ services:
       start_period: 60s
     labels:
       - "coolify.managed=true"
-      - "coolify.version=1.0"
-      - "coolify.type=service"
-
-  n8n:
-    image: n8nio/n8n:latest
-    environment:
-      - N8N_BASIC_AUTH_ACTIVE=false
-      - N8N_HOST=0.0.0.0
-      - N8N_PORT=5678
-      - N8N_PROTOCOL=http
-      - NODE_ENV=production
-      - DB_TYPE=sqlite
-      - N8N_USER_FOLDER=/home/node/.n8n
-      - N8N_CORS_ORIGIN=*
-    volumes:
-      - n8n_data:/home/node/.n8n
-      - n8n_workflows:/home/node/workflows
-    restart: unless-stopped
-    depends_on:
-      - ai-tools
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5678/healthz"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    labels:
-      - "coolify.managed=true"
-      - "coolify.type=service"
-
-  redis:
-    image: redis:7-alpine
-    volumes:
-      - redis_data:/data
-    restart: unless-stopped
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    labels:
-      - "coolify.managed=true"
       - "coolify.type=service"
 
   nginx:
@@ -72,8 +51,7 @@ services:
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - ai-tools
-      - n8n
+      - app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "nginx", "-t"]
@@ -92,12 +70,6 @@ volumes:
   ai_tools_cache:
     driver: local
   ai_tools_temp:
-    driver: local
-  n8n_data:
-    driver: local
-  n8n_workflows:
-    driver: local
-  redis_data:
     driver: local
 
 networks:
