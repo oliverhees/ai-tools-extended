@@ -75,20 +75,6 @@ services:
       - "coolify.managed=true"
       - "coolify.type=service"
 
-volumes:
-  ai_tools_media:
-    driver: local
-  ai_tools_cache:
-    driver: local
-  ai_tools_temp:
-    driver: local
-  n8n_data:
-    driver: local
-  n8n_workflows:
-    driver: local
-  redis_data:
-    driver: local
-
   nginx:
     image: nginx:alpine
     volumes:
