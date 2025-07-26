@@ -1,0 +1,3 @@
+# Force Coolify to use Docker Compose
+build_pack = "docker-compose"
+docker_compose_file = "docker-compose.coolify.yml"

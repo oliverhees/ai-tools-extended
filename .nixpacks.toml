@@ -1,0 +1,6 @@
+# Disable Nixpacks - Use Docker Compose instead
+[phases.build]
+cmd = "echo 'Use Docker Compose instead of Nixpacks'"
+
+[phases.start]
+cmd = "echo 'This should not run - use docker-compose.coolify.yml'"
