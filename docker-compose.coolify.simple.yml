@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-tools-extended:latest
+    environment:
+      # Original tool settings
+      - WHISPER_MODEL=${WHISPER_MODEL:-base}
+      - TTS_ENGINE=${TTS_ENGINE:-kokoro}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-500MB}
+      # Extension settings
+      - MAX_VIDEO_DURATION=${MAX_VIDEO_DURATION:-600}
+      - ENABLE_CACHE=${ENABLE_CACHE:-true}
+      # Coolify specific
+      - NODE_ENV=production
+    volumes:
+      - ai_tools_media:/app/media
+      - ai_tools_cache:/app/cache
+      - ai_tools_temp:/tmp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "coolify.managed=true"
+      - "coolify.version=1.0"
+      - "coolify.type=service"
+
+volumes:
+  ai_tools_media:
+    driver: local
+  ai_tools_cache:
+    driver: local
+  ai_tools_temp:
+    driver: local
+
+networks:
+  default:
+    name: ai-tools-network
+    driver: bridge
