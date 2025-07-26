@@ -1,32 +1,43 @@
-# Extended AI Tools based on gyoridavid's image
-FROM gyoridavid/ai-agents-no-code-tools:0.1.1
+# Use Python 3.11 as base image
+FROM python:3.11-slim
 
-# Install additional dependencies for YouTube support
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3-pip \
+    curl \
+    wget \
+    ffmpeg \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# Install yt-dlp for YouTube downloads
-RUN pip3 install yt-dlp
-
-# Create directory for custom scripts
-WORKDIR /app/extensions
-
-# Copy YouTube transcription extension
-COPY youtube_extension.py .
-
-# Keep the original working directory
+# Set working directory
 WORKDIR /app
 
-# Copy startup script that runs both services
+# Install Python dependencies
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    python-multipart \
+    yt-dlp \
+    openai-whisper \
+    pydub \
+    requests \
+    python-dotenv
+
+# Copy application files
+COPY main.py /app/
+COPY youtube_extension.py /app/extensions/
 COPY start_extended.sh /app/
 RUN chmod +x /app/start_extended.sh
 
-# The base image already exposes its ports, we just document them
-# Port 8000 - Original AI Tools API
-# Port 8080 - YouTube Extension API
+# Create necessary directories
+RUN mkdir -p /app/media /app/cache /tmp
 
-EXPOSE 8080
+# Expose ports
+EXPOSE 8000 8080
 
-# Override the CMD to run our extended startup
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start the application
 CMD ["/app/start_extended.sh"]

@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ai-tools-extended:latest
     environment:
       - WHISPER_MODEL=${WHISPER_MODEL:-base}
       - TTS_ENGINE=${TTS_ENGINE:-kokoro}
