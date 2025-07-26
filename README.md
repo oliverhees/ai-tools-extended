@@ -58,9 +58,9 @@ docker-compose up -d
 
 | Service | URL | Beschreibung | Auth |
 |---------|-----|--------------|------|
-| 🤖 AI Tools API | `https://ai-tools.domain.com` | Haupt-API für alle Features | None |
-| 🎥 YouTube API | `https://youtube-api.domain.com` | YouTube-spezifische Endpoints | None |
-| 🔧 N8N Workflows | `https://workflows.domain.com` | **Kein Login nötig!** | Open |
+| 🤖 AI Tools API | `https://ai-tools.domain.com/api/*` | Haupt-API für alle Features | None |
+| 🎥 YouTube API | `https://ai-tools.domain.com/youtube/*` | YouTube-spezifische Endpoints | None |
+| 🔧 N8N Workflows | `https://ai-tools.domain.com/workflows/*` | **Kein Login nötig!** | Open |
 | 📊 API Docs | `https://ai-tools.domain.com/docs` | Swagger Dokumentation | None |
 
 ## 📚 N8N Tutorial & Workflows
@@ -86,7 +86,7 @@ docker-compose up -d
 
 ### 🔧 Workflow Import (Super einfach!)
 
-1. **N8N Dashboard öffnen** → `https://workflows.domain.com`
+1. **N8N Dashboard öffnen** → `https://ai-tools.domain.com/workflows/`
 2. **Kein Login nötig** - direkt loslegen! 🎉
 3. **Import** → Upload JSON aus `/n8n-workflows/`
 4. **Execute** und sofort nutzen!
@@ -95,7 +95,7 @@ docker-compose up -d
 
 ### YouTube Transcription
 ```bash
-POST https://youtube-api.domain.com/youtube/transcribe
+POST https://ai-tools.domain.com/youtube/transcribe
 {
   "url": "https://youtube.com/watch?v=VIDEO_ID",
   "language": "de"  # oder "auto" für Auto-Detection
@@ -104,7 +104,7 @@ POST https://youtube-api.domain.com/youtube/transcribe
 
 ### Text-to-Speech (20+ Stimmen)
 ```bash
-POST https://ai-tools.domain.com/text-to-speech
+POST https://ai-tools.domain.com/api/text-to-speech
 {
   "text": "Hallo Welt!",
   "voice": "de-DE-KatjaNeural",  # Deutsch
@@ -114,7 +114,7 @@ POST https://ai-tools.domain.com/text-to-speech
 
 ### Captioned Video erstellen
 ```bash
-POST https://ai-tools.domain.com/generate-captioned-video
+POST https://ai-tools.domain.com/api/generate-captioned-video
 {
   "image_id": "uploaded-image-id",
   "text": "Dein Text hier",
@@ -126,7 +126,7 @@ POST https://ai-tools.domain.com/generate-captioned-video
 
 ### YouTube Content Factory
 ```bash
-POST https://youtube-api.domain.com/youtube/to-captioned-video
+POST https://ai-tools.domain.com/youtube/to-captioned-video
 {
   "youtube_url": "https://youtube.com/watch?v=VIDEO_ID",
   "style": "gradient",
@@ -191,8 +191,8 @@ MEMORY_LIMIT=8g         # High-Performance Server
 ### Automated Health Checks
 ```bash
 curl https://ai-tools.domain.com/health       # AI Tools Status
-curl https://youtube-api.domain.com/          # YouTube Extensions
-curl https://workflows.domain.com/healthz     # N8N Status
+curl https://ai-tools.domain.com/youtube/     # YouTube Extensions
+curl https://ai-tools.domain.com/workflows/healthz     # N8N Status
 ```
 
 ### Performance Monitoring

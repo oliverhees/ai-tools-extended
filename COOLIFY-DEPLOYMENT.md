@@ -37,29 +37,24 @@ N8N_PASSWORD=DEIN_SICHERES_PASSWORT
    - "New Resource" → "Docker Image"
    - Build from Git Repository
    - Dockerfile: `Dockerfile`
-   - Port: 8000, 8080
+   - Port: 8000 (alle Services)
 
 2. **N8N Service:**
    - "New Resource" → "Docker Image" 
    - Image: `n8nio/n8n:latest`
    - Port: 5678
 
-## Schritt 3: Domains konfigurieren
+## Schritt 3: Domain konfigurieren (Vereinfacht!)
 
-### AI Tools API
+### Unified AI Tools Platform
 - **Domain**: `ai-tools.deine-domain.com`
-- **Port**: 8000 (Haupt-API)
+- **Port**: 8000 (Haupt-Port für alle Services)
 - **SSL**: Automatisch via Coolify
-
-### YouTube Extension API  
-- **Domain**: `youtube-api.deine-domain.com`
-- **Port**: 8080
-- **SSL**: Automatisch via Coolify
-
-### N8N Workflow Dashboard
-- **Domain**: `workflows.deine-domain.com`
-- **Port**: 5678
-- **SSL**: Automatisch via Coolify
+- **Routing**: 
+  - `/api/*` - Original AI Tools
+  - `/youtube/*` - YouTube Extensions  
+  - `/workflows/*` - N8N Dashboard
+  - `/docs` - API Dokumentation
 
 ## Schritt 4: Persistent Storage
 
@@ -111,9 +106,9 @@ deploy:
 Nach dem Deployment sind deine Services verfügbar unter:
 
 ### 🔗 API Endpoints:
-- **Haupt-API**: `https://ai-tools.deine-domain.com`
-- **YouTube API**: `https://youtube-api.deine-domain.com`
-- **N8N Workflows**: `https://workflows.deine-domain.com`
+- **Haupt-API**: `https://ai-tools.deine-domain.com/api/`
+- **YouTube API**: `https://ai-tools.deine-domain.com/youtube/`
+- **N8N Workflows**: `https://ai-tools.deine-domain.com/workflows/`
 
 ### 📖 API Dokumentation:
 - **Swagger UI**: `https://ai-tools.deine-domain.com/docs`
@@ -207,8 +202,8 @@ WHISPER_MODEL=tiny  # Schneller, weniger genau
 ### Nach erfolgreichem Deployment:
 
 1. **URLs teilen:**
-   - `https://ai-tools.deine-domain.com` - Haupt-API
-   - `https://workflows.deine-domain.com` - N8N Dashboard
+   - `https://ai-tools.deine-domain.com/api/` - Haupt-API
+   - `https://ai-tools.deine-domain.com/workflows/` - N8N Dashboard
 
 2. **N8N Login Info:**
    - User: `admin`

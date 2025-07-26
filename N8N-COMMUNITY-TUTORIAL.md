@@ -18,7 +18,7 @@
 ## 🏃‍♂️ Quick Start
 
 ### 1. N8N Dashboard öffnen
-- **URL**: `https://workflows.deine-domain.com`
+- **URL**: `https://ai-tools.deine-domain.com/workflows/`
 - **Kein Login nötig** - direkt loslegen! 🎉
 
 ### 2. Ersten Workflow erstellen
@@ -47,11 +47,8 @@ Body: JSON
 ### Interne Service URLs
 
 ```bash
-# Original AI Tools API
+# Unified API - Internal Docker URLs
 http://ai-tools:8000
-
-# YouTube Extension API  
-http://ai-tools:8080
 
 # Redis Cache (optional)
 http://redis:6379
@@ -63,13 +60,13 @@ http://redis:6379
 
 ### 1. 🗣️ Text-to-Speech
 
-**Endpoint**: `POST http://ai-tools:8000/text-to-speech`
+**Endpoint**: `POST http://ai-tools:8000/api/text-to-speech`
 
 #### N8N Konfiguration:
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8000/text-to-speech",
+  "url": "http://ai-tools:8000/api/text-to-speech",
   "headers": {
     "Content-Type": "application/json"
   },
@@ -101,7 +98,7 @@ http://redis:6379
 
 ### 2. 🎤 Speech-to-Text
 
-**Endpoint**: `POST http://ai-tools:8000/speech-to-text`
+**Endpoint**: `POST http://ai-tools:8000/api/speech-to-text`
 
 #### N8N Workflow:
 1. **File Upload** → Media Storage
@@ -112,7 +109,7 @@ http://redis:6379
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8000/speech-to-text",
+  "url": "http://ai-tools:8000/api/speech-to-text",
   "body": {
     "file_id": "{{ $json.file_id }}",
     "language": "{{ $json.language || 'de' }}"
@@ -132,12 +129,12 @@ http://redis:6379
 ### 3. 📁 Media Storage
 
 #### Upload File
-**Endpoint**: `POST http://ai-tools:8000/upload`
+**Endpoint**: `POST http://ai-tools:8000/api/upload`
 
 ```json
 {
   "method": "POST", 
-  "url": "http://ai-tools:8000/upload",
+  "url": "http://ai-tools:8000/api/upload",
   "sendBody": true,
   "bodyParameters": {
     "file": "{{ $binary.data }}"
@@ -146,25 +143,25 @@ http://redis:6379
 ```
 
 #### Download File
-**Endpoint**: `GET http://ai-tools:8000/download/{file_id}`
+**Endpoint**: `GET http://ai-tools:8000/api/download/{file_id}`
 
 #### File Status
-**Endpoint**: `GET http://ai-tools:8000/status/{file_id}`
+**Endpoint**: `GET http://ai-tools:8000/api/status/{file_id}`
 
 #### Delete File
-**Endpoint**: `DELETE http://ai-tools:8000/delete/{file_id}`
+**Endpoint**: `DELETE http://ai-tools:8000/api/delete/{file_id}`
 
 ---
 
 ### 4. 🎬 Generate Captioned Video
 
-**Endpoint**: `POST http://ai-tools:8000/generate-captioned-video`
+**Endpoint**: `POST http://ai-tools:8000/api/generate-captioned-video`
 
 #### N8N Konfiguration:
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8000/generate-captioned-video",
+  "url": "http://ai-tools:8000/api/generate-captioned-video",
   "body": {
     "image_id": "{{ $json.image_id }}",
     "text": "{{ $json.text }}",
@@ -185,13 +182,13 @@ http://redis:6379
 
 ### 5. 🎞️ Merge Videos
 
-**Endpoint**: `POST http://ai-tools:8000/merge-videos`
+**Endpoint**: `POST http://ai-tools:8000/api/merge-videos`
 
 #### N8N Konfiguration:
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8000/merge-videos",
+  "url": "http://ai-tools:8000/api/merge-videos",
   "body": {
     "video_ids": ["{{ $json.video1_id }}", "{{ $json.video2_id }}"],
     "add_music": true,
@@ -207,13 +204,13 @@ http://redis:6379
 
 ### 1. 📝 YouTube Transcription
 
-**Endpoint**: `POST http://ai-tools:8080/youtube/transcribe`
+**Endpoint**: `POST http://ai-tools:8000/youtube/transcribe`
 
 #### N8N Konfiguration:
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8080/youtube/transcribe",
+  "url": "http://ai-tools:8000/youtube/transcribe",
   "body": {
     "url": "{{ $json.youtube_url }}",
     "language": "{{ $json.language || 'auto' }}"
@@ -246,13 +243,13 @@ http://redis:6379
 
 ### 2. 🎵 YouTube to TTS
 
-**Endpoint**: `POST http://ai-tools:8080/youtube/to-tts`
+**Endpoint**: `POST http://ai-tools:8000/youtube/to-tts`
 
 #### N8N Konfiguration:
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8080/youtube/to-tts",
+  "url": "http://ai-tools:8000/youtube/to-tts",
   "body": {
     "youtube_url": "{{ $json.youtube_url }}",
     "voice": "{{ $json.voice || 'de-DE-KatjaNeural' }}",
@@ -265,13 +262,13 @@ http://redis:6379
 
 ### 3. 🎬 YouTube to Captioned Video
 
-**Endpoint**: `POST http://ai-tools:8080/youtube/to-captioned-video`
+**Endpoint**: `POST http://ai-tools:8000/youtube/to-captioned-video`
 
 #### N8N Konfiguration:
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8080/youtube/to-captioned-video",
+  "url": "http://ai-tools:8000/youtube/to-captioned-video",
   "body": {
     "youtube_url": "{{ $json.youtube_url }}",
     "style": "{{ $json.style || 'gradient' }}",
@@ -284,13 +281,13 @@ http://redis:6379
 
 ### 4. 🖼️ Extract YouTube Thumbnail
 
-**Endpoint**: `POST http://ai-tools:8080/youtube/extract-thumbnail`
+**Endpoint**: `POST http://ai-tools:8000/youtube/extract-thumbnail`
 
 #### N8N Konfiguration:
 ```json
 {
   "method": "POST",
-  "url": "http://ai-tools:8080/youtube/extract-thumbnail",
+  "url": "http://ai-tools:8000/youtube/extract-thumbnail",
   "body": {
     "url": "{{ $json.youtube_url }}"
   }
@@ -528,6 +525,9 @@ Error: connect ECONNREFUSED 127.0.0.1:8000
 ```
 ❌ Falsch: http://localhost:8000
 ✅ Richtig: http://ai-tools:8000
+
+❌ Falsch: http://ai-tools:8080 (alte YouTube API)
+✅ Richtig: http://ai-tools:8000/youtube/ (neue URL)
 ```
 
 #### 2. "Invalid YouTube URL" Fehler
@@ -606,7 +606,7 @@ if (cached) {
 try {
   const response = await $http.request({
     method: 'POST',
-    url: 'http://ai-tools:8000/text-to-speech',
+    url: 'http://ai-tools:8000/api/text-to-speech',
     body: requestBody,
     timeout: 300000 // 5 Minuten
   });

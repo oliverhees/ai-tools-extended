@@ -239,6 +239,23 @@ community-workflows/
 - **Feature Request Voting**
 - **Beta Testing Groups**
 
+## 🌐 Neue Single-Domain Architektur
+
+### Vereinfachte URL-Struktur
+Statt drei verschiedener Subdomains nutzt die neue Version eine einzige Domain:
+
+**Neu (Empfohlen):**
+- `https://ai-tools.domain.com/api/*` - Alle AI Tools Endpoints
+- `https://ai-tools.domain.com/youtube/*` - YouTube-spezifische Features
+- `https://ai-tools.domain.com/workflows/*` - N8N Dashboard
+- `https://ai-tools.domain.com/docs` - API Dokumentation
+
+**Vorteile:**
+- ✅ Nur ein SSL-Zertifikat nötig
+- ✅ Einfachere DNS-Konfiguration
+- ✅ Bessere Wartbarkeit
+- ✅ Konsistente URL-Struktur
+
 ---
 
 **Starte noch heute und baue die kreativste AI-Community auf! 🚀**

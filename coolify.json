@@ -25,14 +25,6 @@
         {
           "domain": "ai-tools.your-domain.com",
           "port": 8000
-        },
-        {
-          "domain": "youtube-api.your-domain.com", 
-          "port": 8080
-        },
-        {
-          "domain": "workflows.your-domain.com",
-          "port": 5678
         }
       ],
       "volumes": [
