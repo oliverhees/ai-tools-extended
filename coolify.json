@@ -24,7 +24,7 @@
       "domains": [
         {
           "domain": "ai-tools.your-domain.com",
-          "port": 8000
+          "port": 80
         }
       ],
       "volumes": [
